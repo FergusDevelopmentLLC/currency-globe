@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <title>Test</title>
+    <script src="ThirdParty/Cesium/Cesium.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/d3.v4.min.js"></script>
+    <script src="js/tinycolor.js"></script>
+    <style>@import url(ThirdParty/Cesium/Widgets/widgets.css);</style>
+    <link rel="stylesheet" href="css/index.css" media="screen">
+</head>
+<body>
+<div id="cesiumContainer"></div>
+<div id="loadingIndicator" class="cover">
+  <div id="loadingIcon" class="loadingIndicator"></div>
+</div>
+
+<script>
+(function () {
+    "use strict";
+
+    var viewer = new Cesium.Viewer('cesiumContainer', {
+      imageryProvider : new Cesium.UrlTemplateImageryProvider({
+        url : 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_nolabels/{z}/{x}/{y}.png',
+        credit : ''
+      }),
+      baseLayerPicker : false,
+      animation : false,
+      timeline: false,
+      geocoder: false,
+      skyBox: false
+    });
+
+    var initialPosition = new Cesium.Cartesian3.fromDegrees(-95, 39, 17000000);
+    var initialOrientation = new Cesium.HeadingPitchRoll.fromDegrees(0, -90, 0);
+    var homeCameraView = {
+        destination : initialPosition,
+        orientation : {
+            heading : initialOrientation.heading,
+            pitch : initialOrientation.pitch,
+            roll : initialOrientation.roll
+        }
+    };
+
+    viewer.scene.camera.setView(homeCameraView);
+    viewer.scene.globe.enableLighting = false;
+
+    homeCameraView.duration = 2.0;
+    homeCameraView.maximumHeight = 2000;
+    homeCameraView.pitchAdjustHeight = 2000;
+    homeCameraView.endTransform = Cesium.Matrix4.IDENTITY;
+    viewer.homeButton.viewModel.command.beforeExecute.addEventListener(function (e) {
+        e.cancel = true;
+        viewer.scene.camera.flyTo(homeCameraView);
+    });
+
+    var geojsonOptions = {
+      clampToGround : true
+    };
+
+    var dataUrl = 'http://www.apilayer.net/api/live?access_key=fece5e24b88172c3b73ccd07a6bfb3e9&format=1&source=USD&currencies=AED,AFN,ALL,AMD,AOA,ARS,AUD,AWG,AZN,BAM,BBD,BDT,BGN,BHD,BIF,BND,BOB,BRL,BSD,BTN,BWP,BYN,BZD,CAD,CDF,CHF,CLP,CNY,COP,CRC,CUP,CVE,CZK,DJF,DKK,DOP,DZD,EGP,ERN,ETB,EUR,FJD,FKP,FOK,GBP,GEL,GHS,GIP,GMD,GNF,GTQ,GYD,HKD,HNL,HRK,HTG,HUF,IDR,ILS,INR,IQD,IRR,ISK,JMD,JOD,JPY,KES,KGS,KHR,KMF,KPW,KRW,KWD,KYD,KZT,LAK,LBP,LKR,LRD,LSL,LYD,MAD,MDL,MGA,MKD,MMK,MNT,MOP,MRO,MUR,MVR,MWK,MXN,MYR,MZN,NAD,NGN,NIO,NOK,NPR,NZD,OMR,PEN,PGK,PHP,PKR,PLN,PYG,QAR,RON,RSD,RUB,RWF,SAR,SBD,SCR,SDG,SEK,SGD,SHP,SLL,SOS,SRD,STD,SYP,SZL,THB,TJS,TMT,TND,TOP,TRY,TTD,TWD,TZS,UAH,UGX,USD,UYU,UZS,VEF,VND,VUV,WST,XAF,XCD,XOF,XPF,YER,ZAR,ZMW';
+
+    dataUrl = 'data/dummy.json';
+
+    Cesium.loadJson(dataUrl).then(function(jsonData) {
+
+      //console.log(jsonData);
+
+      var quotes = getQuotesFrom(jsonData);
+
+      var countriesPromise = Cesium.GeoJsonDataSource.load('data/world_v8.geojson', geojsonOptions);
+      countriesPromise.then(function(dataSource) {
+
+      viewer.dataSources.add(dataSource);
+
+      var countryEntities = dataSource.entities.values;
+
+      for (var i = 0; i < countryEntities.length; i++) {
+        var entity = countryEntities[i];
+          if (Cesium.defined(entity.polygon)) {
+
+            var country_match = quotes.filter(function(country){
+              return country.symbol == entity._properties._currency_symbol._value;
+            });
+
+            if(country_match.length > 0) {
+              if(country_match[0].value < 0.005) {
+                entity.polygon.material = Cesium.Color.RED.withAlpha(1);
+                //entity.polygon.material = Cesium.Color.MEDIUMAQUAMARINE.withAlpha(1);
+              }
+              else {
+                entity.polygon.material = Cesium.Color.fromCssColorString(entity._properties._currency_color_hex._value).withAlpha(1);
+              }
+              entity.polygon.outline = true;
+              entity.polygon.outlineColor = Cesium.Color.BLACK;
+              entity.polygon.extrudedHeight = 0;
+              entity.polygon.height = country_match[0].scaled_height;
+            }
+          }
+        }
+      });
+
+      //viewInICRF();
+
+    }).otherwise(function(error) {
+        // an error occurred
+    });
+
+    // function spinGlobe( dynamicRate ){
+    //     var previousTime = Date.now();
+    //
+    //     this.viewer.scene.postRender.addEventListener(function (scene, time){
+    //         var spinRate = dynamicRate;
+    //         var currentTime = Date.now();
+    //         var delta = ( currentTime - previousTime ) / 1000;
+    //         previousTime = currentTime;
+    //         this.viewer.scene.camera.rotate(Cesium.Cartesian3.UNIT_Z, -spinRate * delta);
+    //     });
+    // }
+
+    // function icrf(scene, time) {
+    //     if (scene.mode !== Cesium.SceneMode.SCENE3D) {
+    //         return;
+    //     }
+    //
+    //     var icrfToFixed = Cesium.Transforms.computeIcrfToFixedMatrix(time);
+    //     if (Cesium.defined(icrfToFixed)) {
+    //         var camera = viewer.camera;
+    //         var offset = Cesium.Cartesian3.clone(camera.position);
+    //         var transform = Cesium.Matrix4.fromRotationTranslation(icrfToFixed);
+    //         camera.lookAtTransform(transform, offset);
+    //     }
+    // }
+
+    // function viewInICRF() {
+    //
+    //     Sandcastle.declare(viewInICRF);
+    //
+    //     viewer.camera.flyHome(0);
+    //
+    //     clock.multiplier = 3 * 60 * 60;
+    //     scene.preRender.addEventListener(icrf);
+    //     scene.globe.enableLighting = true;
+    // }
+
+    function getQuotesFrom(jsonData) {
+      var quotes = [];
+      var quoteVals = [];
+      for (const key of Object.keys(jsonData.quotes)) {
+
+        var quote = {};
+        quote.symbol = key.replace('USD', '');
+        quote.value = parseFloat(1 / jsonData.quotes[key]);
+
+        if(quote.value == Infinity) {
+          quote.value = 0;
+        }
+
+        if(quote.symbol != 'ETB'){
+          quotes.push(quote);
+          quoteVals.push(quote.value);
+        }
+      }
+
+      var minDataPoint = 0;
+      var maxDataPoint = d3.max(quoteVals);
+
+      var linearScale = d3.scaleLinear().domain([minDataPoint, maxDataPoint]).range([0, 5000000]);
+
+      for (var i = 0; i < quotes.length; i++) {
+        quotes[i].scaled_height = linearScale(quoteVals[i]);
+      }
+
+      return quotes;
+    }
+
+    function shuffle(array) {
+      var currentIndex = array.length, temporaryValue, randomIndex;
+
+      while (0 !== currentIndex) {
+
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+
+      return array;
+    }
+
+    function find_in_object(my_object, my_criteria){
+
+      return my_object.filter(function(obj) {
+        return Object.keys(my_criteria).every(function(c) {
+          return obj[c] == my_criteria[c];
+        });
+      });
+
+    }
+
+    function gup( name, url ) {
+      if (!url) url = location.href;
+      name = name.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");
+      var regexS = "[\\?&]"+name+"=([^&#]*)";
+      var regex = new RegExp( regexS );
+      var results = regex.exec( url );
+      return results == null ? null : results[1];
+    }
+
+}());
+
+</script>
+
+</body>
+</html>

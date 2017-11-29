@@ -1,0 +1,63 @@
+//https://www.countries-ofthe-world.com/world-currencies.html
+//http://www.nationsonline.org/oneworld/country_code_list.htm
+
+//http://www.apilayer.net/api/live?access_key=fece5e24b88172c3b73ccd07a6bfb3e9&format=1
+//https://currencylayer.com/quickstart
+
+CREATE TABLE countries (country varchar, code01 varchar, code02 varchar, code03 varchar);
+copy countries FROM '/mnt/workspace_2TBSG/programming_workspace/webgl/currency/data/countries.csv' DELIMITER ',' CSV;
+
+CREATE TABLE country_currency (country varchar, currency varchar, ticker varchar);
+copy country_currency FROM '/mnt/workspace_2TBSG/programming_workspace/webgl/currency/data/country_currency.csv' DELIMITER ',' CSV;
+
+select * from country_currency;
+
+select country_currency.country, countries.code01 as country_code_alpha2, countries.code02 as country_code_alpha3, countries.code03 as country_code_numeric, country_currency.currency as currency_name, country_currency.ticker as currency_symbol
+from countries
+join country_currency on country_currency.country = countries.country
+
+
+SELECT country_currency.country, countries.code01 as country_code_alpha2, countries.code02 as country_code_alpha3, countries.code03 as country_code_numeric, country_currency.currency as currency_name, country_currency.ticker as currency_symbol
+INTO currency
+from countries
+join country_currency on country_currency.country = countries.country;
+
+select * from currency;
+
+drop table countries;
+drop table country_currency;
+
+drop table currency;
+
+CREATE TABLE currency (country varchar, code2 varchar, code3 varchar, currency_name varchar, currency_symbol varchar);
+copy currency FROM '/mnt/workspace_2TBSG/programming_workspace/webgl/currency/data/working/country_currency_v3.csv' DELIMITER ',' CSV HEADER;
+
+select * from currency;
+
+select * from country_currency;
+
+select distinct currency_symbol from country_currency order by currency_symbol;
+
+select country_currency.id, country_currency.geom, country_currency.name as country_name, country_currency.iso2 as country_code_alpha2, country_currency.iso3 as country_code_alpha3, country_currency.un as country_code_num, currency.currency_name, currency.currency_symbol
+from country_currency
+join currency on currency.code3 = country_currency.iso3;
+
+select * from countries;
+
+
+CREATE TABLE country (country varchar, code01 varchar, code02 varchar, code03 varchar);
+copy countries FROM '/mnt/workspace_2TBSG/programming_workspace/webgl/currency/data/countries.csv' DELIMITER ',' CSV;
+
+
+http://www.apilayer.net/api/live?access_key=fece5e24b88172c3b73ccd07a6bfb3e9&format=1&source=GBP&currencies=AED,AFN,ALL,AMD,AOA,ARS,AUD,AWG,AZN,BAM,BBD,BDT,BGN,BHD,BIF,BND,BOB,BRL,BSD,BTN,BWP,BYN,BZD,CAD,CDF,CHF,CLP,CNY,COP,CRC,CUP,CVE,CZK,DJF,DKK,DOP,DZD,EGP,ERN,ETB,EUR,FJD,FKP,FOK,GBP,GEL,GHS,GIP,GMD,GNF,GTQ,GYD,HKD,HNL,HRK,HTG,HUF,IDR,ILS,INR,IQD,IRR,ISK,JMD,JOD,JPY,KES,KGS,KHR,KMF,KPW,KRW,KWD,KYD,KZT,LAK,LBP,LKR,LRD,LSL,LYD,MAD,MDL,MGA,MKD,MMK,MNT,MOP,MRO,MUR,MVR,MWK,MXN,MYR,MZN,NAD,NGN,NIO,NOK,NPR,NZD,OMR,PEN,PGK,PHP,PKR,PLN,PYG,QAR,RON,RSD,RUB,RWF,SAR,SBD,SCR,SDG,SEK,SGD,SHP,SLL,SOS,SRD,STD,SYP,SZL,THB,TJS,TMT,TND,TOP,TRY,TTD,TWD,TZS,UAH,UGX,USD,UYU,UZS,VEF,VND,VUV,WST,XAF,XCD,XOF,XPF,YER,ZAR,ZMW
+
+drop table country;
+CREATE TABLE country (id varchar, country_name varchar, iso_alpha2 varchar, iso_alpha3 varchar, iso_num varchar, currency_name varchar, currency_symbol varchar, currency_color_hex varchar, currency_color_name varchar, currency_image_url varchar);
+copy country FROM '/mnt/workspace_2TBSG/programming_workspace/webgl/currency/data/working/country.csv' DELIMITER ',' CSV HEADER;
+select * from country;
+
+https://cesiumjs.org/Cesium/Apps/Sandcastle/index.html?src=Camera.html&label=Showcases
+
+https://groups.google.com/forum/#!topic/cesium-dev/XoUwDWE3YZU
+
+https://stackoverflow.com/questions/26186919/cesium-webgl-camera-rotate-how-to-stop-the-rotation
